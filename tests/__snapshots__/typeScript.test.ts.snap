@@ -159,6 +159,14 @@ exports[`max width challenge 1`] = `
 "
 `;
 
+exports[`type import with single quote 1`] = `
+"/**
+ * @import {B} from 'bar'
+ * @import {A} from 'foo'
+ */
+"
+`;
+
 exports[`type imports 1`] = `
 "/**
  * @import {A} from "modulea"
@@ -173,6 +181,14 @@ exports[`type imports 1`] = `
 /**
  * @import C from "modulec"
  * @import BDefault, {B5} from "./moduleb"
+ */
+"
+`;
+
+exports[`type imports with double quote 1`] = `
+"/**
+ * @import {B} from "bar"
+ * @import {A} from "foo"
  */
 "
 `;

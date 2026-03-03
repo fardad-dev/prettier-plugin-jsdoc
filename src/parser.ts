@@ -732,7 +732,8 @@ function writeImportDetailsToSpec(
         : `{${typeString}}`;
     importClauses.push(namedImportClause);
   }
-  spec.description = `${importClauses.join(", ")} from "${src}"`;
+  const quote = options.singleQuote ? "'" : '"';
+  spec.description = `${importClauses.join(", ")} from ${quote}${src}${quote}`;
 }
 
 /**

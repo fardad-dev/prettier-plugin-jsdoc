@@ -295,3 +295,30 @@ test("type imports with no import formatting", async () => {
   expect(result).toMatchSnapshot();
 });
 
+test("type import with single quote", async () => {
+  const result = await subject(
+    `
+/**
+ * @import {  A  } from "foo"
+ * @import {  B  } from 'bar'
+ */
+`,
+    { singleQuote: true },
+  );
+
+  expect(result).toMatchSnapshot();
+});
+
+test("type imports with double quote", async () => {
+  const result = await subject(
+    `
+/**
+ * @import {  A  } from 'foo'
+ * @import {  B  } from "bar"
+ */
+`,
+    { singleQuote: false },
+  );
+
+  expect(result).toMatchSnapshot();
+});

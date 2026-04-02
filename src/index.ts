@@ -14,6 +14,13 @@ const options = {
     default: 1,
     description: "How many spaces will be used to separate tag elements.",
   },
+  jsdocContinuationLineSpaces: {
+    name: "jsdocContinuationLineSpaces",
+    type: "int",
+    category: "jsdoc",
+    default: 2,
+    description: "How many spaces will be used to indent continuing tag lines.",
+  },
   jsdocDescriptionWithDot: {
     name: "jsdocDescriptionWithDot",
     type: "boolean",
@@ -204,6 +211,7 @@ const options = {
 
 const defaultOptions: JsdocOptions = {
   jsdocSpaces: options.jsdocSpaces.default,
+  jsdocContinuationLineSpaces: options.jsdocContinuationLineSpaces.default,
   jsdocPrintWidth: options.jsdocPrintWidth.default,
   jsdocDescriptionWithDot: options.jsdocDescriptionWithDot.default,
   jsdocDescriptionTag: options.jsdocDescriptionTag.default,

@@ -36,6 +36,7 @@ const stringify = async (
   const {
     printWidth,
     jsdocSpaces,
+    jsdocContinuationLineSpaces,
     jsdocVerticalAlignment,
     jsdocDescriptionTag,
     tsdoc,
@@ -142,7 +143,7 @@ const stringify = async (
         tag === DESCRIPTION ||
         ([EXAMPLE, REMARKS, PRIVATE_REMARKS].includes(tag) && tsdoc)
           ? ""
-          : "  "; // google style guide space
+          : " ".repeat(jsdocContinuationLineSpaces);
 
       if (
         (tag !== DESCRIPTION &&

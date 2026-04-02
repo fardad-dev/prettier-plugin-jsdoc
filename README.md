@@ -197,6 +197,7 @@ Like code tags (` ```js `), header tags like `# Header`, or other Markdown featu
 | Key                                 | Type                              | Default      | Description                                                                                                                                                             |
 | :---------------------------------- | :-------------------------------- | :----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `jsdocSpaces`                       | Number                            | 1            |
+| `jsdocContinuationLineSpaces`       | Number                            | 2            | How many spaces to indent continuing tag description lines                                                                                                               |
 | `jsdocDescriptionWithDot`           | Boolean                           | false        |
 | `jsdocDescriptionTag`               | Boolean                           | false        |
 | `jsdocVerticalAlignment`            | Boolean                           | false        |

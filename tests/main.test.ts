@@ -322,6 +322,30 @@ test("Should insert proper amount of spaces based on option", async () => {
   expect(Result2).toMatchSnapshot();
 });
 
+test("Should indent continuing tag lines based on jsdocContinuationLineSpaces", async () => {
+  const result = await subject(
+    `/**
+ * Retrieves the item rewards for specific streak milestones.
+ *
+ * @param streak The current streak count.
+ * @returns An array of item IDs awarded for the streak, or an empty array if no items are awarded for the given streak.
+ */`,
+    {
+      printWidth: 90,
+      jsdocContinuationLineSpaces: 4,
+    },
+  );
+
+  expect(result).toEqual(`/**
+ * Retrieves the item rewards for specific streak milestones.
+ *
+ * @param streak The current streak count.
+ * @returns An array of item IDs awarded for the streak, or an empty array if no
+ *     items are awarded for the given streak.
+ */
+`);
+});
+
 test("yields should work like returns tag", async () => {
   const options = {
     jsdocSpaces: 3,

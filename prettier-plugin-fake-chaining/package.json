@@ -1,0 +1,9 @@
+{
+  "name": "prettier-plugin-fake-chaining",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "files": [
+    "index.js"
+  ]
+}

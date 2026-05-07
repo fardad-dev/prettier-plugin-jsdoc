@@ -30,8 +30,17 @@ const {
   description: descriptionTokenizer,
 } = tokenizers;
 
+type JsdocParser = (
+  text: string,
+  parsersOrOptions: Parameters<Parser["parse"]>[1],
+  maybeOptions?: AllOptions,
+) => ReturnType<Parser["parse"]>;
+
 /** @link https://prettier.io/docs/en/api.html#custom-parser-api} */
-export const getParser = (originalParse: Parser["parse"], parserName: string) =>
+export const getParser = (
+  originalParse: Parser["parse"],
+  parserName: string,
+): JsdocParser =>
   async function jsdocParser(
     text: string,
     parsersOrOptions: Parameters<Parser["parse"]>[1],

@@ -228,53 +228,82 @@ const defaultOptions: JsdocOptions = {
   jsdocBracketSpacing: options.jsdocBracketSpacing.default,
 };
 
+const parserCache = new Map<string, prettier.Parser>();
+
+function getMergedParser(
+  originalParser: prettier.Parser,
+  parserName: string,
+): prettier.Parser {
+  let cached = parserCache.get(parserName);
+  if (!cached) {
+    cached = mergeParsers(originalParser, parserName);
+    parserCache.set(parserName, cached);
+  }
+
+  return cached;
+}
+
 const parsers = {
   // JS - Babel
   get babel() {
-    const parser = parserBabel.parsers.babel;
-    return mergeParsers(parser, "babel");
+    return getMergedParser(parserBabel.parsers.babel, "babel");
   },
   get "babel-flow"() {
-    const parser = parserBabel.parsers["babel-flow"];
-    return mergeParsers(parser, "babel-flow");
+    return getMergedParser(parserBabel.parsers["babel-flow"], "babel-flow");
   },
   get "babel-ts"() {
-    const parser = parserBabel.parsers["babel-ts"];
-    return mergeParsers(parser, "babel-ts");
+    return getMergedParser(parserBabel.parsers["babel-ts"], "babel-ts");
   },
   // JS - Flow
   get flow() {
-    const parser = parserFlow.parsers.flow;
-    return mergeParsers(parser, "flow");
+    return getMergedParser(parserFlow.parsers.flow, "flow");
   },
   // JS - TypeScript
   get typescript(): prettier.Parser {
-    const parser = parserTypescript.parsers.typescript;
-
-    return mergeParsers(parser, "typescript");
-    // require("./parser-typescript").parsers.typescript;
+    return getMergedParser(parserTypescript.parsers.typescript, "typescript");
   },
   get "jsdoc-parser"() {
     // Backward compatible, don't use this in new version since 1.0.0
-    const parser = parserBabel.parsers["babel-ts"];
-
-    return mergeParsers(parser, "babel-ts");
+    return getMergedParser(parserBabel.parsers["babel-ts"], "babel-ts");
   },
 };
 
 function mergeParsers(originalParser: prettier.Parser, parserName: string) {
-  const jsDocParse = getParser(originalParser.parse, parserName) as any;
-  let hasPreprocessed = false;
+  // Chaining plugins can re-resolve parsers and re-enter this parser during the
+  // same format call. Recursive entries fall back to Prettier's raw parser so
+  // the chain can unwind, while separate options objects still format normally.
+  const activePreprocesses = new WeakSet<prettier.ParserOptions>();
+  const activeParses = new WeakSet<prettier.ParserOptions>();
+
+  const innerParse = getParser(originalParser.parse, parserName);
+  const jsDocParse = async (
+    text: string,
+    parsersOrOptions: any,
+    maybeOptions?: any,
+  ) => {
+    const options = (maybeOptions ??
+      parsersOrOptions) as prettier.ParserOptions;
+
+    if (activeParses.has(options)) {
+      return originalParser.parse(text, options);
+    }
+
+    activeParses.add(options);
+    try {
+      return await innerParse(text, parsersOrOptions, maybeOptions);
+    } finally {
+      activeParses.delete(options);
+    }
+  };
 
   const jsDocPreprocess = (text: string, options: prettier.ParserOptions) => {
     normalizeOptions(options as any);
 
-    // Prevent infinite recursion by checking if we've already preprocessed
-    if (hasPreprocessed) {
+    if (activePreprocesses.has(options)) {
       return text;
     }
 
-    hasPreprocessed = true;
+    activePreprocesses.add(options);
     try {
       const tsPluginParser = findPluginByParser(parserName, options);
 
@@ -288,7 +317,7 @@ function mergeParsers(originalParser: prettier.Parser, parserName: string) {
         tsPluginParser?.preprocess || originalParser.preprocess;
       return preprocess ? preprocess(text, options) : text;
     } finally {
-      hasPreprocessed = false;
+      activePreprocesses.delete(options);
     }
   };
 

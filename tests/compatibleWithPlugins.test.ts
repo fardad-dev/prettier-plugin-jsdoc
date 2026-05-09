@@ -235,3 +235,49 @@ async function example(name: string): Promise<void> {}
     });
   });
 });
+
+describe("combined with a plugin that chains", () => {
+  function format(code: string, plugins: string[]) {
+    return prettier.format(code, {
+      parser: "typescript",
+      plugins,
+    } as AllOptions);
+  }
+
+  const code = `/**
+* @param {String|Number} text - some text description
+* @param {String} [defaultValue="defaultTest"] TODO
+* @returns {Boolean} Description for returns
+*/
+const testFunction = (text, defaultValue) => true;
+`;
+
+  test("Should format without infinite recursion (chaining plugin first)", async () => {
+    const result = await format(code, [
+      "./prettier-plugin-fake-chaining/index.js",
+      "prettier-plugin-jsdoc",
+    ]);
+    expect(result).toMatchSnapshot();
+  });
+
+  test("Should format without infinite recursion (chaining plugin last)", async () => {
+    const result = await format(code, [
+      "prettier-plugin-jsdoc",
+      "./prettier-plugin-fake-chaining/index.js",
+    ]);
+    expect(result).toMatchSnapshot();
+  });
+
+  test("Should format concurrent calls consistently", async () => {
+    const plugins = [
+      "./prettier-plugin-fake-chaining/index.js",
+      "prettier-plugin-jsdoc",
+    ];
+    const results = await Promise.all([
+      format(code, plugins),
+      format(code, plugins),
+    ]);
+
+    expect(results).toMatchSnapshot();
+  });
+});

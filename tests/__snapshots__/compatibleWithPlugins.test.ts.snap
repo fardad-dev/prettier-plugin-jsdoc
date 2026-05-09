@@ -181,3 +181,42 @@ import a from "a";
 const testFunction = (text, defaultValue, optionalNumber) => true;
 "
 `;
+
+exports[`combined with a plugin that chains Should format concurrent calls consistently 1`] = `
+[
+  "/**
+ * @param {String | Number} text - Some text description
+ * @param {String} [defaultValue="defaultTest"] TODO. Default is \`"defaultTest"\`
+ * @returns {Boolean} Description for returns
+ */
+const testFunction = (text, defaultValue) => true;
+",
+  "/**
+ * @param {String | Number} text - Some text description
+ * @param {String} [defaultValue="defaultTest"] TODO. Default is \`"defaultTest"\`
+ * @returns {Boolean} Description for returns
+ */
+const testFunction = (text, defaultValue) => true;
+",
+]
+`;
+
+exports[`combined with a plugin that chains Should format without infinite recursion (chaining plugin first) 1`] = `
+"/**
+ * @param {String | Number} text - Some text description
+ * @param {String} [defaultValue="defaultTest"] TODO. Default is \`"defaultTest"\`
+ * @returns {Boolean} Description for returns
+ */
+const testFunction = (text, defaultValue) => true;
+"
+`;
+
+exports[`combined with a plugin that chains Should format without infinite recursion (chaining plugin last) 1`] = `
+"/**
+ * @param {String | Number} text - Some text description
+ * @param {String} [defaultValue="defaultTest"] TODO. Default is \`"defaultTest"\`
+ * @returns {Boolean} Description for returns
+ */
+const testFunction = (text, defaultValue) => true;
+"
+`;

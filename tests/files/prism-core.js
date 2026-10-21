@@ -469,7 +469,7 @@ var _ = {
 
 		_.hooks.run('before-all-elements-highlight', env);
 
-		for (var i = 0, element; element = env.elements[i++];) {
+		for (var i = 0, element; element = env.elements[i]; i++) {
 			_.highlightElement(element, async === true, env.callback);
 		}
 	},
@@ -688,7 +688,7 @@ var _ = {
 				return;
 			}
 
-			for (var i=0, callback; callback = callbacks[i++];) {
+			for (var i=0, callback; callback = callbacks[i]; i++) {
 				callback(env);
 			}
 		}

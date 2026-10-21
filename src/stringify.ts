@@ -170,9 +170,14 @@ const stringify = async (
       descriptionString = descriptionString.trimEnd();
     }
 
-    tagString += descriptionString.startsWith("\n")
-      ? descriptionString.replace(/^\n[\s]+\n/g, "\n")
-      : descriptionString.trimStart();
+    if (descriptionString.startsWith("\n")) {
+      tagString = tagString.trimEnd();
+      tagString += descriptionString.replace(/^\n[\s]+\n/g, "\n");
+    } else {
+      tagString += descriptionString.trimStart();
+    }
+  } else {
+    tagString = tagString.trimEnd();
   }
 
   // Add empty line after some tags if there is something below

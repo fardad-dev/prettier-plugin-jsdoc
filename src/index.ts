@@ -4,7 +4,7 @@ import parserFlow from "prettier/plugins/flow";
 import parserTypescript from "prettier/plugins/typescript";
 import prettier, { ChoiceSupportOption, SupportOption } from "prettier";
 import { JsdocOptions } from "./types.js";
-import { findPluginByParser } from "./utils.js";
+import { findPluginEntryByParser } from "./utils.js";
 
 const options = {
   jsdocSpaces: {
@@ -270,10 +270,17 @@ const parsers = {
 
 function mergeParsers(originalParser: prettier.Parser, parserName: string) {
   // Chaining plugins can re-resolve parsers and re-enter this parser during the
-  // same format call. Recursive entries fall back to Prettier's raw parser so
-  // the chain can unwind, while separate options objects still format normally.
-  const activePreprocesses = new WeakSet<prettier.ParserOptions>();
-  const activeParses = new WeakSet<prettier.ParserOptions>();
+  // same format call. Track the active plugin index per options object so
+  // recursive entries step to earlier plugins in the chain and finally fall
+  // back to Prettier's raw parser, while separate format calls run normally.
+  const activePreprocesses = new WeakMap<
+    prettier.ParserOptions,
+    number | undefined
+  >();
+  const activeParses = new WeakMap<
+    prettier.ParserOptions,
+    number | undefined
+  >();
 
   const innerParse = getParser(originalParser.parse, parserName);
   const jsDocParse = async (
@@ -285,10 +292,32 @@ function mergeParsers(originalParser: prettier.Parser, parserName: string) {
       parsersOrOptions) as prettier.ParserOptions;
 
     if (activeParses.has(options)) {
-      return originalParser.parse(text, options);
+      const maxIndex = activeParses.get(options);
+      const match = findPluginEntryByParser(
+        parserName,
+        options,
+        originalParser,
+        maxIndex,
+        "parse",
+      );
+      const parse = match?.parser.parse || originalParser.parse;
+
+      activeParses.set(options, match?.index ?? -1);
+      try {
+        return await parse(text, options);
+      } finally {
+        activeParses.set(options, maxIndex);
+      }
     }
 
-    activeParses.add(options);
+    const match = findPluginEntryByParser(
+      parserName,
+      options,
+      originalParser,
+      undefined,
+      "parse",
+    );
+    activeParses.set(options, match?.index ?? -1);
     try {
       return await innerParse(text, parsersOrOptions, maybeOptions);
     } finally {
@@ -299,25 +328,29 @@ function mergeParsers(originalParser: prettier.Parser, parserName: string) {
   const jsDocPreprocess = (text: string, options: prettier.ParserOptions) => {
     normalizeOptions(options as any);
 
-    if (activePreprocesses.has(options)) {
+    const maxIndex = activePreprocesses.get(options);
+    const match = findPluginEntryByParser(
+      parserName,
+      options,
+      originalParser,
+      maxIndex,
+      "preprocess",
+    );
+    const preprocess = match?.parser.preprocess || originalParser.preprocess;
+
+    if (!preprocess) {
       return text;
     }
 
-    activePreprocesses.add(options);
+    activePreprocesses.set(options, match?.index ?? -1);
     try {
-      const tsPluginParser = findPluginByParser(parserName, options);
-
-      if (!tsPluginParser) {
-        return originalParser.preprocess
-          ? originalParser.preprocess(text, options)
-          : text;
-      }
-
-      const preprocess =
-        tsPluginParser?.preprocess || originalParser.preprocess;
-      return preprocess ? preprocess(text, options) : text;
+      return preprocess(text, options);
     } finally {
-      activePreprocesses.delete(options);
+      if (maxIndex === undefined) {
+        activePreprocesses.delete(options);
+      } else {
+        activePreprocesses.set(options, maxIndex);
+      }
     }
   };
 
@@ -335,8 +368,8 @@ export { name, options, parsers, defaultOptions };
 export type Options = Partial<JsdocOptions>;
 
 function normalizeOptions(options: prettier.ParserOptions & JsdocOptions) {
-  if (options.jsdocTagsOrder) {
-    options.jsdocTagsOrder = JSON.parse(options.jsdocTagsOrder as any);
+  if (typeof options.jsdocTagsOrder === "string") {
+    options.jsdocTagsOrder = JSON.parse(options.jsdocTagsOrder);
   }
 
   if (options.jsdocCommentLineStrategy) {

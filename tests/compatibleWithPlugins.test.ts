@@ -280,4 +280,20 @@ const testFunction = (text, defaultValue) => true;
 
     expect(results).toMatchSnapshot();
   });
+
+  test("Should preserve preceding plugins across chaining plugins in any order", async () => {
+    const resultChainingLast = await format(code, [
+      "./prettier-plugin-fake/index.js",
+      "prettier-plugin-jsdoc",
+      "./prettier-plugin-fake-chaining/index.js",
+    ]);
+    const resultJsdocLast = await format(code, [
+      "./prettier-plugin-fake/index.js",
+      "./prettier-plugin-fake-chaining/index.js",
+      "prettier-plugin-jsdoc",
+    ]);
+
+    expect(resultChainingLast).toContain("//prettier-plugin-fake");
+    expect(resultJsdocLast).toEqual(resultChainingLast);
+  });
 });

@@ -1,4 +1,4 @@
-import { format, Options, ParserOptions, Plugin } from "prettier";
+import { format, Options, Parser, ParserOptions } from "prettier";
 import { AllOptions, Token } from "./types.js";
 import BSearch from "binary-searching";
 import { TAGS_DEFAULT } from "./roles.js";
@@ -276,10 +276,33 @@ async function formatCode(
   return result;
 }
 
-const findPluginByParser = (parserName: string, options: ParserOptions) => {
+const BUILTIN_PLUGIN_NAMES = new Set([
+  "acorn",
+  "angular",
+  "babel",
+  "estree",
+  "flow",
+  "glimmer",
+  "graphql",
+  "html",
+  "markdown",
+  "meriyah",
+  "postcss",
+  "typescript",
+  "yaml",
+]);
+
+const findPluginEntryByParser = (
+  parserName: string,
+  options: ParserOptions,
+  originalParser?: Parser,
+  maxIndex?: number,
+  hook?: "preprocess" | "parse",
+): { parser: Parser; index: number } | undefined => {
   const plugins = options.plugins ?? [];
 
-  // Only consider plugins that appear *before* prettier-plugin-jsdoc.
+  // Only consider plugins that appear *before* prettier-plugin-jsdoc (or before
+  // maxIndex when unwinding a re-entrant plugin chain).
   // Plugins that appear after us typically wrap our parser; delegating to them
   // from our parse/preprocess hooks can create infinite recursion.
   const jsdocIndex = plugins.findIndex((plugin) => {
@@ -287,29 +310,77 @@ const findPluginByParser = (parserName: string, options: ParserOptions) => {
       typeof plugin === "object" &&
       plugin !== null &&
       !(plugin instanceof URL) &&
-      (plugin as any).name &&
-      (plugin as any).name === "prettier-plugin-jsdoc"
+      ((plugin as any).name === "prettier-plugin-jsdoc" ||
+        Boolean(
+          (plugin as any).parsers && "jsdoc-parser" in (plugin as any).parsers,
+        ))
     );
   });
 
-  const searchPlugins =
-    jsdocIndex === -1 ? plugins : plugins.slice(0, jsdocIndex);
+  const endIndex =
+    maxIndex !== undefined
+      ? maxIndex
+      : jsdocIndex === -1
+        ? plugins.length
+        : jsdocIndex;
 
-  const tsPlugin = searchPlugins.find((plugin) => {
-    return (
-      typeof plugin === "object" &&
-      plugin !== null &&
-      !(plugin instanceof URL) &&
-      (plugin as any).name &&
-      (plugin as any).name !== "prettier-plugin-jsdoc" &&
-      (plugin as any).parsers &&
-      !("jsdoc-parser" in (plugin as any).parsers) &&
-      // eslint-disable-next-line no-prototype-builtins
-      (plugin as any).parsers.hasOwnProperty(parserName)
-    );
-  }) as Plugin | undefined;
+  for (let i = endIndex - 1; i >= 0; i--) {
+    const plugin = plugins[i];
+    if (
+      typeof plugin !== "object" ||
+      plugin === null ||
+      plugin instanceof URL
+    ) {
+      continue;
+    }
 
-  return !tsPlugin ? undefined : tsPlugin.parsers?.[parserName];
+    const pluginName = (plugin as any).name;
+    if (
+      pluginName === "prettier-plugin-jsdoc" ||
+      (typeof pluginName === "string" && BUILTIN_PLUGIN_NAMES.has(pluginName))
+    ) {
+      continue;
+    }
+
+    const parsers = (plugin as any).parsers;
+    if (
+      !parsers ||
+      "jsdoc-parser" in parsers ||
+      !Object.prototype.hasOwnProperty.call(parsers, parserName)
+    ) {
+      continue;
+    }
+
+    const parser = parsers[parserName];
+    if (
+      typeof parser !== "object" ||
+      parser === null ||
+      (originalParser && parser === originalParser) ||
+      (!pluginName && Object.getPrototypeOf(parsers) === null)
+    ) {
+      continue;
+    }
+
+    if (hook === "preprocess" && typeof parser.preprocess !== "function") {
+      continue;
+    }
+
+    if (hook === "parse" && typeof parser.parse !== "function") {
+      continue;
+    }
+
+    return { parser: parser as Parser, index: i };
+  }
+
+  return undefined;
+};
+
+const findPluginByParser = (
+  parserName: string,
+  options: ParserOptions,
+  originalParser?: Parser,
+) => {
+  return findPluginEntryByParser(parserName, options, originalParser)?.parser;
 };
 
 const isDefaultTag = (tag: string): boolean => TAGS_DEFAULT.includes(tag);
@@ -323,5 +394,6 @@ export {
   findTokenIndex,
   formatCode,
   findPluginByParser,
+  findPluginEntryByParser,
   isDefaultTag,
 };

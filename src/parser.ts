@@ -446,7 +446,16 @@ const TAGS_ORDER_ENTRIES = Object.entries(TAGS_ORDER);
  */
 function normalizeTags(parsed: Block): void {
   parsed.tags = parsed.tags.map(
-    ({ tag, type, name, description, default: _default, ...rest }) => {
+    ({
+      tag,
+      type,
+      name,
+      description,
+      default: _default,
+      optional,
+      source,
+      ...rest
+    }) => {
       tag = tag || "";
       type = type || "";
       name = name || "";
@@ -476,8 +485,14 @@ function normalizeTags(parsed: Block): void {
       name = name.trim();
 
       if (name && TAGS_NAMELESS.includes(tag)) {
-        description = `${name} ${description}`;
+        // A leading `[x]` is read as an optional name, but these tags have no name
+        const text =
+          (optional && source.find(({ tokens }) => tokens.name)?.tokens.name) ||
+          name;
+        description = `${text} ${description}`;
         name = "";
+        optional = false;
+        _default = undefined;
       }
       if (type && TAGS_TYPELESS.includes(tag)) {
         description = `{${type}} ${description}`;
@@ -490,6 +505,8 @@ function normalizeTags(parsed: Block): void {
         name,
         description,
         default: _default,
+        optional,
+        source,
         ...rest,
       };
     },

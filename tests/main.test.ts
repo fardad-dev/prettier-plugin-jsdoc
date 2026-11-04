@@ -932,3 +932,20 @@ function example(name, age) {}
   expect(result).toContain("{object}");
   expect(result).toMatchSnapshot();
 });
+
+test("nameless tags keep a description that starts with brackets", async () => {
+  const result = await subject(`
+/**
+ * @returns {number[]} [x, y]
+ * @throws {RangeError} [start=0] Is out of range
+ */
+export function get() {}
+`);
+
+  expect(result).toBe(`/**
+ * @returns {number[]} [x, y]
+ * @throws {RangeError} [start=0] Is out of range
+ */
+export function get() {}
+`);
+});

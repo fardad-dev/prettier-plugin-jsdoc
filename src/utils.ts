@@ -153,6 +153,11 @@ function capitalizer(str: string): string {
     return str;
   }
 
+  const leadingNewLines = str.match(/^(?:\r?\n)+/)?.[0];
+  if (leadingNewLines) {
+    return leadingNewLines + capitalizer(str.slice(leadingNewLines.length));
+  }
+
   if (str.match(/^https?:\/\//i)) {
     return str;
   }

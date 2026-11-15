@@ -540,6 +540,23 @@ test("description start underscores", async () => {
   expect(result1).toMatchSnapshot();
 });
 
+test("description on the line after tag name is capitalized", async () => {
+  const result1 = await subject(
+    `/**
+ * @param {string} a
+ * description on next line
+ */`,
+  );
+
+  expect(result1).toEqual(
+    `/** @param {string} a Description on next line */\n`,
+  );
+
+  const result2 = await subject(result1);
+
+  expect(result2).toEqual(result1);
+});
+
 test("`#` in text", async () => {
   const result1 = await subject(
     `/**
